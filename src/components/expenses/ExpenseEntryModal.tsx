@@ -8,6 +8,7 @@ import { useUIStore } from '../../store/uiStore'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useFinanceStore } from '../../store/financeStore'
+import { PaymentMethodSelector } from '../ui/PaymentMethodSelector'
 
 export function ExpenseEntryModal() {
   const { isExpenseModalOpen, setExpenseModalOpen } = useUIStore()
@@ -18,7 +19,7 @@ export function ExpenseEntryModal() {
   const [name, setName] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
   const [category, setCategory] = useState('Other')
-  const [paymentMethod] = useState('UPI')
+  const [paymentMethod, setPaymentMethod] = useState('UPI - Google Pay')
   const [expenseType, setExpenseType] = useState('one-time')
   const [endDate, setEndDate] = useState('')
   const [loading, setLoading] = useState(false)
@@ -27,11 +28,13 @@ export function ExpenseEntryModal() {
   useEffect(() => {
     const text = name.toLowerCase()
     if (text.includes('milk') || text.includes('grocery') || text.includes('vegetables')) setCategory('Groceries')
-    else if (text.includes('zomato') || text.includes('swiggy') || text.includes('pizza') || text.includes('restaurant')) setCategory('Food & Dining')
+    else if (text.includes('zomato') || text.includes('swiggy') || text.includes('pizza') || text.includes('restaurant')) setCategory('Food and Dining')
     else if (text.includes('uber') || text.includes('ola') || text.includes('petrol') || text.includes('fuel')) setCategory('Transportation')
     else if (text.includes('gym') || text.includes('protein')) setCategory('Fitness')
-    else if (text.includes('netflix') || text.includes('prime') || text.includes('movie')) setCategory('Entertainment')
-    else if (text.includes('medicine') || text.includes('doctor') || text.includes('hospital')) setCategory('Healthcare')
+    else if (text.includes('netflix') || text.includes('prime') || text.includes('movie') || text.includes('sports')) setCategory('Sports and Entertainment')
+    else if (text.includes('medicine') || text.includes('doctor') || text.includes('hospital') || text.includes('pharmacy')) setCategory('Medical')
+    else if (text.includes('rent')) setCategory('Rents')
+    else if (text.includes('bill') || text.includes('emi')) setCategory('Bills and Emi')
   }, [name])
 
   const isBackdated = date !== format(new Date(), 'yyyy-MM-dd')
@@ -63,6 +66,22 @@ export function ExpenseEntryModal() {
       allocated_months: allocated_months,
       end_date: expenseType === 'distributed' && endDate ? endDate : null
     })
+    
+    if (!error && expenseType === 'recurring') {
+      const d = new Date(date)
+      d.setMonth(d.getMonth() + 1) // Set next due date to +1 month
+      const nextDueDate = format(d, 'yyyy-MM-dd')
+      
+      await supabase.from('recurring_expenses').insert({
+        user_id: user.id,
+        category_id: category_id,
+        name: name,
+        amount: parseFloat(amount),
+        frequency: 'monthly',
+        next_due_date: nextDueDate,
+        is_active: true
+      })
+    }
     
     setLoading(false)
     if (!error) {
@@ -162,6 +181,8 @@ export function ExpenseEntryModal() {
               </select>
             </div>
           </div>
+          
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
           
           {expenseType === 'distributed' && (
             <div className="space-y-2">

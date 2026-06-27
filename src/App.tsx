@@ -13,6 +13,7 @@ import Budgets from './pages/budgets/Budgets'
 import Goals from './pages/goals/Goals'
 import Expenses from './pages/expenses/Expenses'
 import Recurring from './pages/recurring/Recurring'
+import Investments from './pages/investments/Investments'
 import Settings from './pages/settings/Settings'
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
             <Route path="budgets" element={<Budgets />} />
             <Route path="goals" element={<Goals />} />
             <Route path="recurring" element={<Recurring />} />
+            <Route path="investments" element={<Investments />} />
             <Route path="settings" element={<Settings />} />
           </Route>
 

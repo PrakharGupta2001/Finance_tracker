@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Receipt, Wallet, Target, Repeat, Settings, LogOut } from 'lucide-react'
+import { LayoutDashboard, Receipt, Wallet, Target, Repeat, Settings, LogOut, TrendingUp } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import { useAuthStore } from '../../store/authStore'
 import { Button } from '../ui/button'
@@ -11,6 +11,7 @@ const NAV_ITEMS = [
   { name: 'Budgets', path: '/budgets', icon: Wallet },
   { name: 'Goals', path: '/goals', icon: Target },
   { name: 'Recurring', path: '/recurring', icon: Repeat },
+  { name: 'Investments', path: '/investments', icon: TrendingUp },
   { name: 'Settings', path: '/settings', icon: Settings },
 ]
 

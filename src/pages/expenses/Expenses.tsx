@@ -70,6 +70,7 @@ export default function Expenses() {
                     <th className="px-6 py-4 font-medium">Date</th>
                     <th className="px-6 py-4 font-medium">Transaction</th>
                     <th className="px-6 py-4 font-medium">Category</th>
+                    <th className="px-6 py-4 font-medium">Mode</th>
                     <th className="px-6 py-4 font-medium">Type</th>
                     <th className="px-6 py-4 font-medium text-right">Amount</th>
                     <th className="px-6 py-4 font-medium text-right">Actions</th>
@@ -88,6 +89,7 @@ export default function Expenses() {
                           {expense.categories?.name || 'Other'}
                         </span>
                       </td>
+                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{expense.payment_method || '-'}</td>
                       <td className="px-6 py-4 text-muted-foreground capitalize">{expense.expense_type}</td>
                       <td className="px-6 py-4 font-bold text-right text-foreground">₹{expense.amount.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right">
@@ -98,7 +100,7 @@ export default function Expenses() {
                     </tr>
                   ))}
                   {filteredExpenses.length === 0 && (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No expenses found.</td></tr>
+                    <tr><td colSpan={7} className="px-6 py-8 text-center text-muted-foreground">No expenses found.</td></tr>
                   )}
                 </tbody>
               </table>
@@ -108,6 +110,7 @@ export default function Expenses() {
                   <tr>
                     <th className="px-6 py-4 font-medium">Date</th>
                     <th className="px-6 py-4 font-medium">Source</th>
+                    <th className="px-6 py-4 font-medium">Mode</th>
                     <th className="px-6 py-4 font-medium">Notes</th>
                     <th className="px-6 py-4 font-medium text-right">Amount</th>
                     <th className="px-6 py-4 font-medium text-right">Actions</th>
@@ -118,6 +121,7 @@ export default function Expenses() {
                     <tr key={income.id} className="hover:bg-muted/50 transition-colors">
                       <td className="px-6 py-4 whitespace-nowrap text-muted-foreground">{new Date(income.date).toLocaleDateString()}</td>
                       <td className="px-6 py-4 font-medium">{income.source}</td>
+                      <td className="px-6 py-4 text-muted-foreground whitespace-nowrap">{income.payment_method || '-'}</td>
                       <td className="px-6 py-4 text-muted-foreground">{income.notes || '-'}</td>
                       <td className="px-6 py-4 font-bold text-right text-primary">₹{income.amount.toLocaleString()}</td>
                       <td className="px-6 py-4 text-right">
@@ -128,7 +132,7 @@ export default function Expenses() {
                     </tr>
                   ))}
                   {filteredIncomes.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-muted-foreground">No income records found.</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-8 text-center text-muted-foreground">No income records found.</td></tr>
                   )}
                 </tbody>
               </table>

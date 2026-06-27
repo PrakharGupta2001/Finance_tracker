@@ -9,9 +9,10 @@ import { useFinanceStore } from '../../store/financeStore'
 import type { Goal } from '../../store/financeStore'
 import { useAuthStore } from '../../store/authStore'
 import { supabase } from '../../lib/supabase'
+import { Check } from 'lucide-react'
 
 export default function Goals() {
-  const { goals, deleteGoal, updateGoal, fetchData } = useFinanceStore()
+  const { goals, deleteGoal, updateGoal, fetchData, incomes, expenses, categories } = useFinanceStore()
   const { user } = useAuthStore()
   
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -20,6 +21,57 @@ export default function Goals() {
   const [targetAmount, setTargetAmount] = useState('')
   const [targetDate, setTargetDate] = useState('')
   const [loading, setLoading] = useState(false)
+  const [filter, setFilter] = useState<'active' | 'achieved'>('active')
+
+  // Unified Savings Calculation
+  const totalIncome = incomes.reduce((sum, inc) => sum + inc.amount, 0)
+  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0)
+  const totalSavings = Math.max(0, totalIncome - totalExpenses)
+
+  const handleClaimGoal = async (goal: Goal) => {
+    if (!user) return
+    setLoading(true)
+    
+    // 1. Find or create 'Goal' category
+    let goalCategory = categories.find(c => c.name.toLowerCase() === 'goal')
+    if (!goalCategory) {
+      const { data } = await supabase.from('categories').insert({
+        user_id: user.id,
+        name: 'Goal',
+        color: '#fcd34d',
+        icon: 'target',
+        type: 'expense',
+        is_default: false
+      }).select().single()
+      
+      if (data) goalCategory = data
+    }
+
+    // 2. Create an expense to deduct the savings
+    const { error: expError } = await supabase.from('expenses').insert({
+      user_id: user.id,
+      amount: goal.target_amount,
+      expense_name: `Goal Achieved: ${goal.name}`,
+      payment_method: 'Savings',
+      expense_type: 'one-time',
+      date: new Date().toISOString().split('T')[0],
+      category_id: goalCategory?.id || null,
+      allocated_months: 1
+    })
+    
+    if (expError) {
+      alert("Failed to claim goal: " + expError.message)
+      setLoading(false)
+      return
+    }
+    
+    // 2. Mark the goal as achieved instead of deleting it
+    await updateGoal(goal.id, { status: 'achieved' })
+    
+    // 3. Refresh
+    await fetchData(user.id)
+    setLoading(false)
+  }
 
   const openModal = (goal?: Goal) => {
     if (goal) {
@@ -74,6 +126,10 @@ export default function Goals() {
         <div>
           <h1 className="text-3xl font-bold font-heading tracking-tight text-foreground">Savings Goals</h1>
           <p className="text-muted-foreground mt-1">Track progress towards your dreams.</p>
+          <div className="mt-4 px-4 py-2 bg-primary/10 rounded-lg inline-block border border-primary/20">
+            <span className="text-sm font-medium text-muted-foreground mr-2">Total Unified Savings:</span>
+            <span className="text-xl font-bold text-primary font-heading">₹{totalSavings.toLocaleString()}</span>
+          </div>
         </div>
         <Button onClick={() => openModal()} className="shadow-sm">
           <Plus className="w-4 h-4 mr-2" />
@@ -81,22 +137,34 @@ export default function Goals() {
         </Button>
       </div>
 
+      <div className="flex space-x-2 border-b border-border pb-4">
+        <Button variant={filter === 'active' ? 'default' : 'outline'} onClick={() => setFilter('active')}>
+          Current Goals
+        </Button>
+        <Button variant={filter === 'achieved' ? 'default' : 'outline'} onClick={() => setFilter('achieved')}>
+          Achieved Goals
+        </Button>
+      </div>
+
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {goals.map((goal) => {
-          const progressPercent = Math.min((goal.current_amount / goal.target_amount) * 100, 100)
-          const isCompleted = goal.current_amount >= goal.target_amount
+        {goals.filter(g => filter === 'active' ? g.status !== 'achieved' : g.status === 'achieved').map((goal) => {
+          const isAchieved = goal.status === 'achieved'
+          const progressPercent = isAchieved ? 100 : Math.min((totalSavings / goal.target_amount) * 100, 100)
+          const isCompleted = isAchieved || totalSavings >= goal.target_amount
           
           return (
-            <Card key={goal.id} className={isCompleted ? "border-primary/50 shadow-primary/10 bg-primary/5" : "relative group"}>
+            <Card key={goal.id} className={`relative group ${isCompleted ? "border-primary/50 shadow-primary/10 bg-primary/5" : ""}`}>
               <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  className="h-8 w-8 hover:bg-secondary"
-                  onClick={() => openModal(goal)}
-                >
-                  <Edit2 className="w-4 h-4" />
-                </Button>
+                {!isAchieved && (
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="h-8 w-8 hover:bg-secondary"
+                    onClick={() => openModal(goal)}
+                  >
+                    <Edit2 className="w-4 h-4" />
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -116,7 +184,7 @@ export default function Goals() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
-                  <span className="text-2xl font-bold font-heading">₹{goal.current_amount.toLocaleString()}</span>
+                  <span className="text-2xl font-bold font-heading text-primary">₹{(isAchieved ? goal.target_amount : totalSavings).toLocaleString()}</span>
                   <span className="text-sm text-muted-foreground">of ₹{goal.target_amount.toLocaleString()}</span>
                 </div>
                 
@@ -139,6 +207,18 @@ export default function Goals() {
                     )}
                   </div>
                 </div>
+
+                {!isAchieved && isCompleted && (
+                  <Button 
+                    className="w-full mt-2" 
+                    variant="default"
+                    onClick={() => handleClaimGoal(goal)}
+                    disabled={loading}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Claim Goal
+                  </Button>
+                )}
               </CardContent>
             </Card>
           )

@@ -8,6 +8,7 @@ import { useUIStore } from '../../store/uiStore'
 import { supabase } from '../../lib/supabase'
 import { useAuthStore } from '../../store/authStore'
 import { useFinanceStore } from '../../store/financeStore'
+import { PaymentMethodSelector } from '../ui/PaymentMethodSelector'
 
 export function IncomeEntryModal() {
   const { isIncomeModalOpen, setIncomeModalOpen } = useUIStore()
@@ -17,6 +18,7 @@ export function IncomeEntryModal() {
   const [amount, setAmount] = useState('')
   const [source, setSource] = useState('')
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'))
+  const [paymentMethod, setPaymentMethod] = useState('Bank - NEFT')
   const [notes, setNotes] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -30,6 +32,7 @@ export function IncomeEntryModal() {
       amount: parseFloat(amount),
       source: source,
       date: date,
+      payment_method: paymentMethod,
       notes: notes
     })
     
@@ -71,6 +74,8 @@ export function IncomeEntryModal() {
             <Label htmlFor="inc-source">Income Source</Label>
             <Input id="inc-source" type="text" required value={source} onChange={(e) => setSource(e.target.value)} placeholder="e.g. Monthly Salary, Freelance" className="h-12" />
           </div>
+          
+          <PaymentMethodSelector value={paymentMethod} onChange={setPaymentMethod} />
           
           <div className="space-y-2">
             <Label htmlFor="inc-notes">Notes (Optional)</Label>

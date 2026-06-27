@@ -102,7 +102,7 @@ export default function Recurring() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {recurring.map((sub) => (
-          <Card key={sub.id} className="relative group">
+          <Card key={sub.id} className={`relative group transition-opacity ${!sub.is_active ? 'opacity-60' : ''}`}>
             <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
               <Button 
                 variant="ghost" 
@@ -131,11 +131,23 @@ export default function Recurring() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold font-heading mb-4 text-foreground">₹{sub.amount.toLocaleString()}</div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground bg-secondary/50 p-2 rounded-md w-full">
-                  <CalendarClock className="w-4 h-4 text-primary" />
-                  <span>Next: <strong className="text-foreground">{new Date(sub.next_due_date).toLocaleDateString()}</strong></span>
+              <div className="flex items-center justify-between mt-2">
+                <div className={`flex items-center gap-2 text-sm bg-secondary/50 p-2 rounded-md w-full mr-2 ${sub.is_active ? 'text-muted-foreground' : 'text-destructive/80 font-medium'}`}>
+                  <CalendarClock className={`w-4 h-4 ${sub.is_active ? 'text-primary' : 'text-destructive'}`} />
+                  {sub.is_active ? (
+                    <span>Next: <strong className="text-foreground">{new Date(sub.next_due_date).toLocaleDateString()}</strong></span>
+                  ) : (
+                    <span>Paused</span>
+                  )}
                 </div>
+                <Button 
+                  variant={sub.is_active ? "outline" : "default"} 
+                  size="sm"
+                  className="shrink-0"
+                  onClick={() => updateRecurring(sub.id, { is_active: !sub.is_active })}
+                >
+                  {sub.is_active ? "Pause" : "Resume"}
+                </Button>
               </div>
             </CardContent>
           </Card>

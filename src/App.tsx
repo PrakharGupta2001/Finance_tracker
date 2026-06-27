@@ -6,6 +6,8 @@ import { AuthLayout } from './layouts/AuthLayout'
 import { MainLayout } from './layouts/MainLayout'
 import Login from './pages/auth/Login'
 import Signup from './pages/auth/Signup'
+import ForgotPassword from './pages/auth/ForgotPassword'
+import ResetPassword from './pages/auth/ResetPassword'
 import Dashboard from './pages/dashboard/Dashboard'
 import Budgets from './pages/budgets/Budgets'
 import Goals from './pages/goals/Goals'
@@ -31,7 +33,8 @@ function App() {
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<div className="text-center p-8 bg-card rounded-xl border">Forgot password flow coming soon.</div>} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
           </Route>
           
           <Route path="/" element={<MainLayout />}>

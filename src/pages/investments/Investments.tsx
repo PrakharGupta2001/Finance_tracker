@@ -199,7 +199,7 @@ export default function Investments() {
           
           return (
             <Card key={inv.id} className="relative group">
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+              <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10">
                 <Button 
                   variant="ghost" 
                   size="icon" 

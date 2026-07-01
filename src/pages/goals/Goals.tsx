@@ -154,7 +154,7 @@ export default function Goals() {
           
           return (
             <Card key={goal.id} className={`relative group ${isCompleted ? "border-primary/50 shadow-primary/10 bg-primary/5" : ""}`}>
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+              <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 flex gap-1">
                 {!isAchieved && (
                   <Button 
                     variant="ghost" 

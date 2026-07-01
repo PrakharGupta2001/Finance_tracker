@@ -103,7 +103,7 @@ export default function Recurring() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {recurring.map((sub) => (
           <Card key={sub.id} className={`relative group transition-opacity ${!sub.is_active ? 'opacity-60' : ''}`}>
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+            <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 flex gap-1">
               <Button 
                 variant="ghost" 
                 size="icon" 

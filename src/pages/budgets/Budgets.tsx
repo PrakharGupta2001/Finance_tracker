@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
@@ -15,12 +15,23 @@ export default function Budgets() {
   const { budgets, expenses, categories, deleteBudget, updateBudget, fetchData } = useFinanceStore()
   const { user } = useAuthStore()
   
+  const [viewTab, setViewTab] = useState<'current' | 'previous'>('current')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [categoryId, setCategoryId] = useState('')
   const [amount, setAmount] = useState('')
-  const [month, setMonth] = useState(new Date().getMonth() + 1)
-  const [year, setYear] = useState(new Date().getFullYear())
+  
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth() + 1;
+  const currentYear = currentDate.getFullYear();
+  const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
+  const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
+
+  const activeMonth = viewTab === 'current' ? currentMonth : prevMonth;
+  const activeYear = viewTab === 'current' ? currentYear : prevYear;
+
+  const [month, setMonth] = useState(activeMonth)
+  const [year, setYear] = useState(activeYear)
   const [loading, setLoading] = useState(false)
 
   // Use the first category as default if none selected
@@ -28,19 +39,51 @@ export default function Budgets() {
     setCategoryId(categories[0].id)
   }
 
+  const effectiveBudgets = useMemo(() => {
+    const active: Budget[] = [];
+    const uniqueCategoryIds = Array.from(new Set(budgets.map(b => b.category_id)));
+
+    for (const catId of uniqueCategoryIds) {
+      const catBudgets = budgets.filter(b => b.category_id === catId);
+      let match = catBudgets.find(b => b.month === activeMonth && b.year === activeYear);
+      
+      if (!match) {
+        const pastBudgets = catBudgets.filter(b => b.year < activeYear || (b.year === activeYear && b.month < activeMonth));
+        if (pastBudgets.length > 0) {
+          pastBudgets.sort((a, b) => {
+            if (a.year !== b.year) return b.year - a.year;
+            return b.month - a.month;
+          });
+          match = { ...pastBudgets[0], id: 'synthetic_' + pastBudgets[0].id, month: activeMonth, year: activeYear };
+        }
+      }
+      
+      if (match) {
+        active.push(match);
+      }
+    }
+    return active;
+  }, [budgets, activeMonth, activeYear]);
+
   const openModal = (budget?: Budget) => {
-    if (budget) {
+    if (budget && !budget.id.startsWith('synthetic_')) {
       setEditingBudget(budget)
       setCategoryId(budget.category_id)
       setAmount(budget.amount.toString())
       setMonth(budget.month)
       setYear(budget.year)
+    } else if (budget && budget.id.startsWith('synthetic_')) {
+      setEditingBudget(null)
+      setCategoryId(budget.category_id)
+      setAmount(budget.amount.toString())
+      setMonth(activeMonth)
+      setYear(activeYear)
     } else {
       setEditingBudget(null)
       setCategoryId(categories.length > 0 ? categories[0].id : '')
       setAmount('')
-      setMonth(new Date().getMonth() + 1)
-      setYear(new Date().getFullYear())
+      setMonth(activeMonth)
+      setYear(activeYear)
     }
     setIsModalOpen(true)
   }
@@ -82,23 +125,35 @@ export default function Budgets() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold font-heading tracking-tight text-foreground">Budgets</h1>
           <p className="text-muted-foreground mt-1">Manage your monthly spending limits.</p>
         </div>
-        <Button onClick={() => openModal()} className="shadow-sm">
-          <Plus className="w-4 h-4 mr-2" />
-          New Budget
-        </Button>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md bg-secondary p-1 mr-2">
+            <button
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${viewTab === 'previous' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
+              onClick={() => setViewTab('previous')}
+            >
+              Previous
+            </button>
+            <button
+              className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${viewTab === 'current' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
+              onClick={() => setViewTab('current')}
+            >
+              Current
+            </button>
+          </div>
+          <Button onClick={() => openModal()} className="shadow-sm">
+            <Plus className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">New Budget</span>
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {budgets.map((budget) => {
-          // Calculate spent amount from expenses matching this category name, month and year
-          // For distributed expenses, we check if the budget month falls within the allocation range,
-          // and only add the EXACT amortized daily portion.
-          
+        {effectiveBudgets.map((budget) => {
           let activeDistributedEndingDate = '';
           
           const spent = expenses
@@ -131,7 +186,7 @@ export default function Budgets() {
           
           return (
             <Card key={budget.id} className={`relative group ${isOver ? "border-destructive/50 shadow-destructive/10" : ""}`}>
-              <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex gap-1">
+              <div className="absolute top-2 right-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity z-10 flex gap-1">
                 <Button 
                   variant="ghost" 
                   size="icon" 
@@ -144,7 +199,13 @@ export default function Budgets() {
                   variant="ghost" 
                   size="icon" 
                   className="text-destructive hover:bg-destructive/10 h-8 w-8"
-                  onClick={() => deleteBudget(budget.id)}
+                  onClick={() => {
+                    if (budget.id.startsWith('synthetic_')) {
+                      alert("This budget is carried over from a previous month. To change the limit for this month, click Edit instead. You can set it to 0 if you no longer need it.")
+                    } else {
+                      deleteBudget(budget.id)
+                    }
+                  }}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
@@ -156,7 +217,10 @@ export default function Budgets() {
                   </CardTitle>
                   {isOver && <AlertTriangle className="w-5 h-5 text-destructive animate-pulse flex-shrink-0" />}
                 </div>
-                <div className="text-xs text-muted-foreground">{budget.month}/{budget.year}</div>
+                <div className="text-xs text-muted-foreground">
+                  {new Date(budget.year, budget.month - 1).toLocaleString('default', { month: 'short' })} {budget.year}
+                  {budget.id.startsWith('synthetic_') && ' (Carried Over)'}
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="flex justify-between items-baseline">
@@ -188,9 +252,9 @@ export default function Budgets() {
             </Card>
           )
         })}
-        {budgets.length === 0 && (
+        {effectiveBudgets.length === 0 && (
           <div className="col-span-full p-8 text-center text-muted-foreground border rounded-lg border-dashed">
-            No budgets found. Create one to start managing your spending!
+            No budgets found for this month. Create one to start managing your spending!
           </div>
         )}
       </div>

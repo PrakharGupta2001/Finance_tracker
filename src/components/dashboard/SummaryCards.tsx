@@ -3,11 +3,11 @@ import { ArrowDownIcon, ArrowUpIcon, Wallet, PiggyBank } from 'lucide-react'
 import { useFinanceStore } from '../../store/financeStore'
 import { calculateDailyAmortization } from '../../lib/utils'
 
-export function SummaryCards({ timeframe = 'monthly' }: { timeframe?: 'monthly' | 'yearly' }) {
+export function SummaryCards({ timeframe = 'monthly', selectedMonth = new Date().getMonth(), selectedYear = new Date().getFullYear() }: { timeframe?: 'monthly' | 'yearly', selectedMonth?: number, selectedYear?: number }) {
   const { expenses, incomes } = useFinanceStore()
   
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
+  const currentMonth = selectedMonth
+  const currentYear = selectedYear
   
   const monthlyExpense = expenses
     .filter(e => {

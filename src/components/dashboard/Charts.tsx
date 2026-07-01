@@ -4,7 +4,7 @@ import { useFinanceStore } from '../../store/financeStore'
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#14b8a6', '#64748b']
 
-export function Charts() {
+export function Charts({ selectedMonth = new Date().getMonth(), selectedYear = new Date().getFullYear() }: { selectedMonth?: number, selectedYear?: number }) {
   const { expenses, incomes } = useFinanceStore()
   
   // Calculate category totals
@@ -18,8 +18,8 @@ export function Charts() {
   if (pieData.length === 0) pieData = [{ name: 'No Expenses', value: 1 }]
 
   // Calculate Area Chart data by splitting the current month into 4 weeks
-  const currentMonth = new Date().getMonth()
-  const currentYear = new Date().getFullYear()
+  const currentMonth = selectedMonth
+  const currentYear = selectedYear
 
   const data = [
     { name: 'Week 1', expense: 0, income: 0 },

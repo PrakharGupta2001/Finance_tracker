@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
 import { Dialog } from '../../components/ui/dialog'
-import { Plus, AlertTriangle, Trash2, Edit2 } from 'lucide-react'
+import { Plus, AlertTriangle, Trash2, Edit2, ArrowLeft } from 'lucide-react'
 import { useFinanceStore } from '../../store/financeStore'
 import type { Budget } from '../../store/financeStore'
 import { useAuthStore } from '../../store/authStore'
@@ -16,6 +16,8 @@ export default function Budgets() {
   const { user } = useAuthStore()
   
   const [viewTab, setViewTab] = useState<'current' | 'previous'>('current')
+  const [selectedPrevDate, setSelectedPrevDate] = useState<{ month: number, year: number } | null>(null)
+  
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null)
   const [categoryId, setCategoryId] = useState('')
@@ -27,8 +29,8 @@ export default function Budgets() {
   const prevMonth = currentMonth === 1 ? 12 : currentMonth - 1;
   const prevYear = currentMonth === 1 ? currentYear - 1 : currentYear;
 
-  const activeMonth = viewTab === 'current' ? currentMonth : prevMonth;
-  const activeYear = viewTab === 'current' ? currentYear : prevYear;
+  const activeMonth = viewTab === 'current' ? currentMonth : (selectedPrevDate ? selectedPrevDate.month : prevMonth);
+  const activeYear = viewTab === 'current' ? currentYear : (selectedPrevDate ? selectedPrevDate.year : prevYear);
 
   const [month, setMonth] = useState(activeMonth)
   const [year, setYear] = useState(activeYear)
@@ -38,6 +40,33 @@ export default function Budgets() {
   if (!categoryId && categories.length > 0) {
     setCategoryId(categories[0].id)
   }
+
+  const pastMonths = useMemo(() => {
+    let earliestYear = currentYear;
+    let earliestMonth = currentMonth;
+    budgets.forEach(b => {
+      if (b.year < earliestYear || (b.year === earliestYear && b.month < earliestMonth)) {
+        earliestYear = b.year;
+        earliestMonth = b.month;
+      }
+    });
+    
+    const months = [];
+    let y = earliestYear;
+    let m = earliestMonth;
+    while (y < currentYear || (y === currentYear && m < currentMonth)) {
+      months.push({ year: y, month: m });
+      m++;
+      if (m > 12) {
+        m = 1;
+        y++;
+      }
+    }
+    if (months.length === 0) {
+      months.push({ year: prevYear, month: prevMonth });
+    }
+    return months.reverse(); 
+  }, [budgets, currentMonth, currentYear, prevMonth, prevYear]);
 
   const effectiveBudgets = useMemo(() => {
     const active: Budget[] = [];
@@ -131,16 +160,22 @@ export default function Budgets() {
           <p className="text-muted-foreground mt-1">Manage your monthly spending limits.</p>
         </div>
         <div className="flex items-center gap-2">
+          {viewTab === 'previous' && selectedPrevDate && (
+            <Button variant="outline" onClick={() => setSelectedPrevDate(null)} className="mr-2">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Months
+            </Button>
+          )}
           <div className="flex rounded-md bg-secondary p-1 mr-2">
             <button
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${viewTab === 'previous' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
-              onClick={() => setViewTab('previous')}
+              onClick={() => { setViewTab('previous'); setSelectedPrevDate(null); }}
             >
               Previous
             </button>
             <button
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${viewTab === 'current' ? 'bg-background shadow text-foreground' : 'text-muted-foreground'}`}
-              onClick={() => setViewTab('current')}
+              onClick={() => { setViewTab('current'); setSelectedPrevDate(null); }}
             >
               Current
             </button>
@@ -153,7 +188,15 @@ export default function Budgets() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {effectiveBudgets.map((budget) => {
+        {viewTab === 'previous' && !selectedPrevDate ? (
+          pastMonths.map((pm, idx) => (
+            <Card key={idx} className="cursor-pointer hover:border-primary/50 transition-colors" onClick={() => setSelectedPrevDate(pm)}>
+              <CardHeader>
+                <CardTitle>{new Date(pm.year, pm.month - 1).toLocaleString('default', { month: 'long' })} {pm.year}</CardTitle>
+              </CardHeader>
+            </Card>
+          ))
+        ) : effectiveBudgets.map((budget) => {
           let activeDistributedEndingDate = '';
           
           const spent = expenses
@@ -219,7 +262,6 @@ export default function Budgets() {
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(budget.year, budget.month - 1).toLocaleString('default', { month: 'short' })} {budget.year}
-                  {budget.id.startsWith('synthetic_') && ' (Carried Over)'}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -252,7 +294,7 @@ export default function Budgets() {
             </Card>
           )
         })}
-        {effectiveBudgets.length === 0 && (
+        {((viewTab === 'current') || (viewTab === 'previous' && selectedPrevDate)) && effectiveBudgets.length === 0 && (
           <div className="col-span-full p-8 text-center text-muted-foreground border rounded-lg border-dashed">
             No budgets found for this month. Create one to start managing your spending!
           </div>
